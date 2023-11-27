@@ -15,6 +15,11 @@ import com.getui.push.v2.sdk.dto.req.message.android.AndroidDTO;
 import com.getui.push.v2.sdk.dto.req.message.android.GTNotification;
 import com.getui.push.v2.sdk.dto.req.message.android.ThirdNotification;
 import com.getui.push.v2.sdk.dto.req.message.android.Ups;
+//增加ios推送引用
+import com.getui.push.v2.sdk.dto.req.message.ios.IosDTO;
+import com.getui.push.v2.sdk.dto.req.message.ios.Aps;
+import com.getui.push.v2.sdk.dto.req.message.ios.Alert;
+
 import com.google.gson.Gson;
 import com.meizu.push.sdk.server.IFlymePush;
 import com.xiaomi.xmpush.server.Constants;
@@ -83,12 +88,18 @@ public class GetuiPush {
             } else {
                 title = pushMessage.senderName + " 请求加您为好友";
             }
-        } else {
-            if (StringUtils.isEmpty(pushMessage.senderName)) {
-                title = "新消息";
-            } else {
-                title = pushMessage.senderName;
-            }
+        } else {     
+           if (StringUtils.isEmpty(pushMessage.senderName)) {
+               title = "新消息";
+          } else {
+			  //convType 0  单聊  1 群聊   3频道
+			 //增加群聊和频道消息推送的标题为群聊名和频道名
+           if (pushMessage.convType == 1 ||pushMessage.convType == 3) {
+              title = pushMessage.targetName;
+         } else {
+              title = pushMessage.senderName;
+         }
+        }
         }
 
         //根据cid进行单推
@@ -119,22 +130,39 @@ public class GetuiPush {
         thirdNotification.setTitle(title);
         thirdNotification.setBody(pushMessage.pushContent);
         thirdNotification.setClickType("startapp");
+		// 增加厂商适配参数
+       // 添加 "options" 节点
+        ups.addOption("HW","/message/android/category","IM"); 
+	 //华为通知分类
+				
+/* 		v2 sdk 服务端消息分类配置：
+
+ups.addOption("HW","/message/android/category","华为平台侧申请到的category");
+ups.addOption("OP","/channel_id","填写OPPO平台登记的私信渠道ID");
+ups.addOption("VV","/category",“填写vivo平台登记对应的categoryID”);
+ups.addOption("XM","/extra.channel_id","小米重要消息渠道id");
+ups.addOption("HO","/android/notification/importance","荣耀消息分类参数"); */
+
 //        thirdNotification.setUrl("https://www.getui.com");
         // 两条消息的notify_id相同，新的消息会覆盖老的消息，取值范围：0-2147483647
         // thirdNotification.setNotifyId("11177");
         /*配置安卓厂商参数结束，更多参数请查看文档或对象源码*/
 
         /*设置ios厂商参数*/
-//        IosDTO iosDTO = new IosDTO();
-//        pushChannel.setIos(iosDTO);
+        IosDTO iosDTO = new IosDTO();
+        pushChannel.setIos(iosDTO);
 //        // 相同的collapseId会覆盖之前的消息
 //        iosDTO.setApnsCollapseId("xxx");
-//        Aps aps = new Aps();
-//        iosDTO.setAps(aps);
-//        Alert alert = new Alert();
-//        aps.setAlert(alert);
-//        alert.setTitle("ios title");
-//        alert.setBody("ios body");
+//        iosDTO.setpayload("自定义标题");
+        Aps aps = new Aps();
+        iosDTO.setAps(aps);
+		//消息声音
+		aps.setSound("default");
+
+        Alert alert = new Alert();
+        aps.setAlert(alert);
+        alert.setTitle(title);
+        alert.setBody(pushMessage.pushContent);
         /*设置ios厂商参数结束，更多参数请查看文档或对象源码*/
 
         /*设置接收人信息*/
