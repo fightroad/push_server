@@ -43,10 +43,12 @@ public class IOSPushServiceImpl implements IOSPushService {
                 LOG.error("等待太久，消息抛弃");
                 return;
             }
-            if(pushMessage.pushType < 3) {
+			//改动适配个推ios，解决unichat插件不支持将pushtype设置为7。将1也执行到个推通道。
+            if(pushMessage.pushType == 0) {
                 apnsServer.pushMessage(pushMessage);
-            } else if(pushMessage.pushType == AndroidPushType.ANDROID_PUSH_TYPE_GETUI) {
+            } else if(pushMessage.pushType == 1 || pushMessage.pushType == 7){
                 getuiPush.push(pushMessage, false);
+				
             } else {
                 LOG.error("Unknown ios push type: {}", pushMessage.pushType);
             }
