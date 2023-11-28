@@ -68,39 +68,58 @@ public class GetuiPush {
     }
 
     public void push(PushMessage pushMessage, boolean isAndroid) {
-        if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
+        if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED
+		    || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_BYE || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_ANSWER		
+		) {
             //Todo not implement
             //撤回或者删除消息，需要更新远程通知，暂未实现
+			//增加音视频挂断和接听的推送，暂未实现。
             return;
         }
-
-        if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) {
-            pushMessage.pushContent = "您收到一条密聊消息";
+		
+		 String pushbody;
+		//判断如果为音视频发起推送，将推送的body改成固定内容。解决im发起安卓推送pushcontent没内容的问题。
+		if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE && (pushMessage.pushContent == null || pushMessage.pushContent.isEmpty())) {
+            pushbody="音视频通话邀请";
+      } 
+		else if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) {
+            pushbody = "您收到一条密聊消息";
         }
-
-        if (pushMessage.isHiddenDetail) {
-            pushMessage.pushContent = "您收到一条新消息";
+	    else if (pushMessage.isHiddenDetail) {
+            pushbody = "您收到一条新消息";
+        } else {
+	        pushbody= pushMessage.pushContent;
         }
-        String title;
+		  
+		  
+	  
+	  	//定义title   	
+        String title="新消息";
         if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_FRIEND_REQUEST) {
             if (StringUtils.isEmpty(pushMessage.senderName)) {
                 title = "好友请求";
             } else {
                 title = pushMessage.senderName + " 请求加您为好友";
             }
-        } else {     
-           if (StringUtils.isEmpty(pushMessage.senderName)) {
-               title = "新消息";
-          } else {
-			  //convType 0  单聊  1 群聊   3频道
-			 //增加群聊和频道消息推送的标题为群聊名和频道名
-           if (pushMessage.convType == 1 ||pushMessage.convType == 3) {
-              title = pushMessage.targetName;
-         } else {
+        } else if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL) {
+			//区分普通消息李的群聊消息，title使用群聊名，内容增加发送者。
+			if (pushMessage.convType == 1){				
+		       title = pushMessage.targetName;
+               pushbody = pushMessage.senderName + ":" + pushbody;}
+		//区分普通消息里的频道消息，title使用频道名。
+		  else if (pushMessage.convType == 3){title = pushMessage.targetName;}
+		  else 
+		      {
               title = pushMessage.senderName;
-         }
-        }
-        }
+               }		  
+		} else {
+		  if (StringUtils.isEmpty(pushMessage.senderName)) {
+               title = "新消息";			   
+		} else {
+              title = pushMessage.senderName;
+          }	
+		}
+ 
 
         //根据cid进行单推
         PushDTO<Audience> pushDTO = new PushDTO<Audience>();
@@ -112,7 +131,7 @@ public class GetuiPush {
         GTNotification notification = new GTNotification();
         pm.setNotification(notification);
         notification.setTitle(title);
-        notification.setBody(pushMessage.pushContent);
+        notification.setBody(pushbody);
         notification.setClickType("startapp");
 //        notification.setUrl("https://www.getui.com");
         /**** 设置个推通道参数，更多参数请查看文档或对象源码 *****/
@@ -128,7 +147,7 @@ public class GetuiPush {
         ThirdNotification thirdNotification = new ThirdNotification();
         ups.setNotification(thirdNotification);
         thirdNotification.setTitle(title);
-        thirdNotification.setBody(pushMessage.pushContent);
+        thirdNotification.setBody(pushbody);
         thirdNotification.setClickType("startapp");
 		// 增加厂商适配参数
        // 添加 "options" 节点
@@ -162,7 +181,7 @@ ups.addOption("HO","/android/notification/importance","荣耀消息分类参数"
         Alert alert = new Alert();
         aps.setAlert(alert);
         alert.setTitle(title);
-        alert.setBody(pushMessage.pushContent);
+        alert.setBody(pushbody);
         /*设置ios厂商参数结束，更多参数请查看文档或对象源码*/
 
         /*设置接收人信息*/
